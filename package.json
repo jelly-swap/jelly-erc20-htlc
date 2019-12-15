@@ -1,0 +1,24 @@
+{
+  "name": "weidex-erc20-htlc",
+  "version": "1.0.0",
+  "description": "HTLC Solidity implementation.",
+  "main": "truffle-config.js",
+  "dependencies": {
+    "@openzeppelin/contracts": "^2.4.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/weichain/weidex-eth-htlc.git"
+  },
+  "keywords": [],
+  "author": "Krasimir Raykov <raykov@weidex.market>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/weichain/weidex-eth-htlc/issues"
+  },
+  "homepage": "https://github.com/weichain/weidex-eth-htlc#readme"
+}
