@@ -1,7 +1,7 @@
 const HashTimeLock = artifacts.require("HashTimeLock");
 const SimpleToken = artifacts.require("SimpleToken");
-const { id, mockNewContract } = require("./mockData.js");
-const { MAXIMUM_UNIX_TIMESTAMP } = require("./constants.js");
+const { id, mockNewContractArgs } = require("./mockData.js");
+const { getMockNewContract } = require("./helpers");
 
 const { ether } = require("openzeppelin-test-helpers");
 
@@ -9,6 +9,7 @@ const { ether } = require("openzeppelin-test-helpers");
 contract("HashTimeLock", ([_, senderAddress]) => {
   let contractInstance;
   let tokenInstance;
+  let mockNewContract;
   let txHash;
 
   beforeEach(async () => {
@@ -17,6 +18,10 @@ contract("HashTimeLock", ([_, senderAddress]) => {
 
     // Creating new instance of SimpleToken contract
     tokenInstance = await SimpleToken.new();
+    mockNewContract = getMockNewContract(
+      mockNewContractArgs,
+      tokenInstance.address
+    );
 
     // Approve htlc contract spending from token contract funds
     await tokenInstance.approve(contractInstance.address, ether("10"), {
@@ -35,6 +40,7 @@ contract("HashTimeLock", ([_, senderAddress]) => {
     );
   });
 
+  // Approval
   it("should succeed once approved", async function() {
     await tokenInstance.approve(contractInstance.address, ether("10"), {
       from: senderAddress
@@ -49,24 +55,8 @@ contract("HashTimeLock", ([_, senderAddress]) => {
 
   // New contract
   it("should create new contract", async () => {
-    const {
-      inputAmount,
-      outputAmount,
-      hashLock,
-      receiverAddress,
-      outputNetwork,
-      outputAddress
-    } = mockNewContract;
-
     let newContract = await contractInstance.newContract(
-      inputAmount,
-      outputAmount,
-      MAXIMUM_UNIX_TIMESTAMP,
-      hashLock,
-      tokenInstance.address,
-      receiverAddress,
-      outputNetwork,
-      outputAddress,
+      ...Object.values(mockNewContract),
       {
         from: senderAddress
       }

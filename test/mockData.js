@@ -7,7 +7,7 @@ const mockData = {
   invalidSecret:
     "0x2240404393f4dd5d8757eeb71447c8c675b57ddb2e20edcfc8f6f13857f35a15",
 
-  mockNewContract: {
+  mockNewContractArgs: {
     inputAmount: 1,
     outputAmount: 1,
     timestamp: MAXIMUM_UNIX_TIMESTAMP,
