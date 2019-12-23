@@ -4,7 +4,9 @@
   "description": "HTLC Solidity implementation.",
   "main": "truffle-config.js",
   "dependencies": {
-    "@openzeppelin/contracts": "^2.4.0"
+    "@openzeppelin/contracts": "^2.4.0",
+    "chai": "^4.2.0",
+    "openzeppelin-test-helpers": "^0.5.1"
   },
   "devDependencies": {},
   "scripts": {
