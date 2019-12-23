@@ -18,7 +18,6 @@ const { ether } = require("openzeppelin-test-helpers");
 contract("HashTimeLock", ([_, senderAddress]) => {
   let contractInstance;
   let tokenInstance;
-  let newContract;
   let txHash;
 
   beforeEach(async () => {
