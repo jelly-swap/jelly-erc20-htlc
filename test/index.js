@@ -8,7 +8,7 @@ const {
   secret,
   invalidSecret
 } = require("./mockData.js");
-const { getMockNewContract, getTimestamp } = require("./helpers");
+const { getMockNewContract, getTimestamp, timeout } = require("./helpers");
 const statuses = require("./statuses");
 const { ACTIVE, REFUNDED, WITHDRAWN } = require("./constants.js");
 
@@ -115,7 +115,9 @@ contract("HashTimeLock", ([_, senderAddress]) => {
     );
 
     const contractId = newContract.logs[0].args.id;
-    await contractInstance.withdraw(contractId, secret, tokenInstance.address);
+    await contractInstance.withdraw(contractId, secret, tokenInstance.address, {
+      from: senderAddress
+    });
 
     const getOneStatus = await contractInstance.methods["getStatus(bytes32)"](
       contractId
@@ -151,8 +153,70 @@ contract("HashTimeLock", ([_, senderAddress]) => {
       contractInstance.withdraw(
         contractId,
         invalidSecret,
-        tokenInstance.address
+        tokenInstance.address,
+        { from: senderAddress }
       )
+    );
+  });
+
+  // Unsuccessful withdraw (expiration time passed)
+  it("should revert withdraw, because expiration time has passed", async () => {
+    const timestamp = await getTimestamp(txHash);
+    const customTimestamp = (timestamp + 2).toString();
+
+    let newContract = await contractInstance.newContract(
+      ...Object.values(
+        getMockNewContract(
+          mockNewContractArgs,
+          tokenInstance.address,
+          customTimestamp
+        )
+      ),
+      {
+        from: senderAddress
+      }
+    );
+
+    const contractId = newContract.logs[0].args.id;
+    await timeout(2000);
+
+    await truffleAssert.reverts(
+      contractInstance.withdraw(contractId, secret, tokenInstance.address, {
+        from: senderAddress
+      })
+    );
+  });
+
+  // Successful refund
+  it("should refund", async () => {
+    const timestamp = await getTimestamp(txHash);
+    const customTimestamp = (timestamp + 4).toString();
+
+    let newContract = await contractInstance.newContract(
+      ...Object.values(
+        getMockNewContract(
+          mockNewContractArgs,
+          tokenInstance.address,
+          customTimestamp
+        )
+      ),
+      {
+        from: senderAddress
+      }
+    );
+
+    const contractId = newContract.logs[0].args.id;
+    await timeout(2500);
+    await contractInstance.refund(contractId, tokenInstance.address, {
+      from: senderAddress
+    });
+
+    const getOneStatus = await contractInstance.methods["getStatus(bytes32)"](
+      contractId
+    );
+    assert(
+      statuses[parseInt(getOneStatus)] === REFUNDED,
+      `Expected REFUNDED, got ${statuses[parseInt(getOneStatus)]} instead`
     );
   });
 });
