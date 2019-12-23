@@ -18,6 +18,7 @@ const { ether } = require("openzeppelin-test-helpers");
 contract("HashTimeLock", ([_, senderAddress]) => {
   let contractInstance;
   let tokenInstance;
+  let newContract;
   let txHash;
 
   beforeEach(async () => {
@@ -44,7 +45,7 @@ contract("HashTimeLock", ([_, senderAddress]) => {
     );
   });
 
-  // Approval
+  // Successful Approval
   it("should succeed once approved", async function() {
     await tokenInstance.approve(contractInstance.address, ether("10"), {
       from: senderAddress
@@ -206,7 +207,7 @@ contract("HashTimeLock", ([_, senderAddress]) => {
     );
 
     const contractId = newContract.logs[0].args.id;
-    await timeout(2500);
+    await timeout(2200);
     await contractInstance.refund(contractId, tokenInstance.address, {
       from: senderAddress
     });
@@ -217,6 +218,23 @@ contract("HashTimeLock", ([_, senderAddress]) => {
     assert(
       statuses[parseInt(getOneStatus)] === REFUNDED,
       `Expected REFUNDED, got ${statuses[parseInt(getOneStatus)]} instead`
+    );
+  });
+
+  // Unsuccessful refund (expiration time hasn't passed)
+  it("should revert refund, because expiration time hasn't passed yet", async () => {
+    let newContract = await contractInstance.newContract(
+      ...Object.values(
+        getMockNewContract(mockNewContractArgs, tokenInstance.address)
+      ),
+      {
+        from: senderAddress
+      }
+    );
+
+    const contractId = newContract.logs[0].args.id;
+    await truffleAssert.reverts(
+      contractInstance.refund(contractId, tokenInstance.address)
     );
   });
 });
