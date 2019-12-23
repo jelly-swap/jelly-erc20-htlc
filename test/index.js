@@ -1,5 +1,5 @@
 const HashTimeLock = artifacts.require("HashTimeLock");
-const TokenContract = artifacts.require("SimpleToken");
+const SimpleToken = artifacts.require("SimpleToken");
 const { id, mockNewContract } = require("./mockData.js");
 const { MAXIMUM_UNIX_TIMESTAMP } = require("./constants.js");
 
@@ -12,8 +12,19 @@ contract("HashTimeLock", ([_, senderAddress]) => {
   let txHash;
 
   beforeEach(async () => {
+    // Creating new instance of HashTimeLock contract
     contractInstance = await HashTimeLock.new();
-    tokenInstance = await TokenContract.new();
+
+    // Creating new instance of SimpleToken contract
+    tokenInstance = await SimpleToken.new();
+
+    // Approve htlc contract spending from token contract funds
+    await tokenInstance.approve(contractInstance.address, ether("10"), {
+      from: senderAddress
+    });
+
+    // Minting tokens from token contract and sending them to senderAddress
+    await tokenInstance.mint(senderAddress, ether("10"));
   });
 
   // Deploy contract
@@ -47,12 +58,7 @@ contract("HashTimeLock", ([_, senderAddress]) => {
       outputAddress
     } = mockNewContract;
 
-    await tokenInstance.approve(contractInstance.address, ether("10"), {
-      from: senderAddress
-    });
-    await tokenInstance.mint(senderAddress, ether("10"));
-
-    await contractInstance.newContract(
+    let newContract = await contractInstance.newContract(
       inputAmount,
       outputAmount,
       MAXIMUM_UNIX_TIMESTAMP,
@@ -61,16 +67,15 @@ contract("HashTimeLock", ([_, senderAddress]) => {
       receiverAddress,
       outputNetwork,
       outputAddress,
-       {
-         from: senderAddress
-       }
+      {
+        from: senderAddress
+      }
     );
 
-    // txHash = newContract.logs[0].transactionHash;
+    txHash = newContract.logs[0].transactionHash;
 
-    // const contractId = newContract.logs[0].args.id;
-    // const contractExists = await contractInstance.contractExists(contractId);
-    // assert(contractExists, `Expected true, got ${contractExists} instead`);
-    assert(true);
+    const contractId = newContract.logs[0].args.id;
+    const contractExists = await contractInstance.contractExists(contractId);
+    assert(contractExists, `Expected true, got ${contractExists} instead`);
   });
 });
