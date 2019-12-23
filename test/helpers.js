@@ -22,8 +22,13 @@ const getMockNewContract = (
     outputNetwork,
     outputAddress
   },
-  tokenAddress
+  tokenAddress,
+  customTimestamp
 ) => {
+  if (customTimestamp) {
+    timestamp = customTimestamp;
+  }
+
   return {
     inputAmount,
     outputAmount,

@@ -1,7 +1,16 @@
+const truffleAssert = require("truffle-assertions");
 const HashTimeLock = artifacts.require("HashTimeLock");
 const SimpleToken = artifacts.require("SimpleToken");
-const { id, mockNewContractArgs } = require("./mockData.js");
-const { getMockNewContract } = require("./helpers");
+const { SECONDS_IN_ONE_MINUTE } = require("./constants.js");
+const {
+  id,
+  mockNewContractArgs,
+  secret,
+  invalidSecret
+} = require("./mockData.js");
+const { getMockNewContract, getTimestamp } = require("./helpers");
+const statuses = require("./statuses");
+const { ACTIVE, REFUNDED, WITHDRAWN } = require("./constants.js");
 
 const { ether } = require("openzeppelin-test-helpers");
 
@@ -9,7 +18,6 @@ const { ether } = require("openzeppelin-test-helpers");
 contract("HashTimeLock", ([_, senderAddress]) => {
   let contractInstance;
   let tokenInstance;
-  let mockNewContract;
   let txHash;
 
   beforeEach(async () => {
@@ -18,10 +26,6 @@ contract("HashTimeLock", ([_, senderAddress]) => {
 
     // Creating new instance of SimpleToken contract
     tokenInstance = await SimpleToken.new();
-    mockNewContract = getMockNewContract(
-      mockNewContractArgs,
-      tokenInstance.address
-    );
 
     // Approve htlc contract spending from token contract funds
     await tokenInstance.approve(contractInstance.address, ether("10"), {
@@ -56,7 +60,9 @@ contract("HashTimeLock", ([_, senderAddress]) => {
   // New contract
   it("should create new contract", async () => {
     let newContract = await contractInstance.newContract(
-      ...Object.values(mockNewContract),
+      ...Object.values(
+        getMockNewContract(mockNewContractArgs, tokenInstance.address)
+      ),
       {
         from: senderAddress
       }
@@ -67,5 +73,86 @@ contract("HashTimeLock", ([_, senderAddress]) => {
     const contractId = newContract.logs[0].args.id;
     const contractExists = await contractInstance.contractExists(contractId);
     assert(contractExists, `Expected true, got ${contractExists} instead`);
+  });
+
+  // Get one status
+  it("should get one status", async () => {
+    let newContract = await contractInstance.newContract(
+      ...Object.values(
+        getMockNewContract(mockNewContractArgs, tokenInstance.address)
+      ),
+      {
+        from: senderAddress
+      }
+    );
+
+    const contractId = newContract.logs[0].args.id;
+    const getOneStatus = await contractInstance.methods["getStatus(bytes32)"](
+      contractId
+    );
+
+    assert(
+      statuses[parseInt(getOneStatus)] === ACTIVE,
+      `Expected ACTIVE, got ${statuses[parseInt(getOneStatus)]} instead`
+    );
+  });
+
+  // Successful withdraw
+  it("should withdraw", async () => {
+    const timestamp = await getTimestamp(txHash);
+    const customTimestamp = (timestamp + SECONDS_IN_ONE_MINUTE).toString();
+    let newContract = await contractInstance.newContract(
+      ...Object.values(
+        getMockNewContract(
+          mockNewContractArgs,
+          tokenInstance.address,
+          customTimestamp
+        )
+      ),
+      {
+        from: senderAddress
+      }
+    );
+
+    const contractId = newContract.logs[0].args.id;
+    await contractInstance.withdraw(contractId, secret, tokenInstance.address);
+
+    const getOneStatus = await contractInstance.methods["getStatus(bytes32)"](
+      contractId
+    );
+
+    assert(
+      statuses[parseInt(getOneStatus)] === WITHDRAWN,
+      `Expected WITHDRAWN, got ${statuses[parseInt(getOneStatus)]} instead`
+    );
+  });
+
+  // Unsuccessful withdraw (invalid secret)
+  it("should revert withdraw, because secret is invalid", async () => {
+    const timestamp = await getTimestamp(txHash);
+    const customTimestamp = (timestamp + SECONDS_IN_ONE_MINUTE).toString();
+
+    let newContract = await contractInstance.newContract(
+      ...Object.values(
+        getMockNewContract(
+          mockNewContractArgs,
+          tokenInstance.address,
+          customTimestamp
+        )
+      ),
+      {
+        from: senderAddress
+      }
+    );
+
+    const contractId = newContract.logs[0].args.id;
+
+    await truffleAssert.reverts(
+      contractInstance.withdraw(
+        contractId,
+        invalidSecret,
+        tokenInstance.address
+      )
+    );
   });
 });
