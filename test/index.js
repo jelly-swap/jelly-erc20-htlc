@@ -1,12 +1,12 @@
 const HashTimeLock = artifacts.require("HashTimeLock");
-const TokenContract = artifacts.require("DappTokenContract");
-const { id, secret, invalidSecret, mockNewContract } = require("./mockData.js");
+const TokenContract = artifacts.require("SimpleToken");
+const { id, mockNewContract } = require("./mockData.js");
 const { MAXIMUM_UNIX_TIMESTAMP } = require("./constants.js");
 
 const { ether } = require("openzeppelin-test-helpers");
 
 // Unit tests wrapper
-contract("HashTimeLock", ([_, beneficiary, referrer]) => {
+contract("HashTimeLock", ([_, senderAddress]) => {
   let contractInstance;
   let tokenInstance;
   let txHash;
@@ -26,7 +26,7 @@ contract("HashTimeLock", ([_, beneficiary, referrer]) => {
 
   it("should succeed once approved", async function() {
     await tokenInstance.approve(contractInstance.address, ether("10"), {
-      from: referrer
+      from: senderAddress
     });
   });
 
@@ -47,19 +47,24 @@ contract("HashTimeLock", ([_, beneficiary, referrer]) => {
       outputAddress
     } = mockNewContract;
 
-    await tokenInstance.approve(contractInstance.address, ether("10"));
-    // await tokenInstance.transfer(contractInstance.address, ether("1")); 
+    await tokenInstance.approve(contractInstance.address, ether("10"), {
+      from: senderAddress
+    });
+    await tokenInstance.mint(senderAddress, ether("10"));
 
-    // const newContract = await contractInstance.newContract(
-    //   inputAmount,
-    //   outputAmount,
-    //   MAXIMUM_UNIX_TIMESTAMP,
-    //   hashLock,
-    //   tokenInstance.address,
-    //   receiverAddress,
-    //   outputNetwork,
-    //   outputAddress
-    // );
+    await contractInstance.newContract(
+      inputAmount,
+      outputAmount,
+      MAXIMUM_UNIX_TIMESTAMP,
+      hashLock,
+      tokenInstance.address,
+      receiverAddress,
+      outputNetwork,
+      outputAddress,
+       {
+         from: senderAddress
+       }
+    );
 
     // txHash = newContract.logs[0].transactionHash;
 
