@@ -143,15 +143,6 @@ contract HashTimeLock {
     return true;
   }
 
-  function getContract(bytes32 id) public view returns (LockContract memory) {
-    LockContract memory c = contracts[id];
-    return c;
-  }
-
-  function contractExists(bytes32 id) public view returns (bool) {
-    return contracts[id].status != SwapStatus.INVALID;
-  }
-
   function getStatus(bytes32[] memory ids)
     public
     view
